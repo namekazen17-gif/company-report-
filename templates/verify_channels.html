@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify Channels · Video Competitor Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+  <style>
+    /* ── Verify Channels page styles ── */
+    .verify-page { background: #F4F6F9; min-height: 100vh; }
+
+    .verify-header {
+      background: #1B2A4A;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .verify-header-icon { font-size: 28px; }
+    .verify-header-text h1 { color: #fff; font-size: 22px; font-weight: 700; margin: 0; }
+    .verify-header-text p  { color: #D6E8F7; font-size: 14px; margin: 4px 0 0; }
+
+    .verify-body { max-width: 900px; margin: 0 auto; padding: 36px 24px; }
+
+    .verify-banner {
+      background: #fff8e1;
+      border: 1.5px solid #F4A261;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .verify-banner-icon { font-size: 22px; flex-shrink: 0; }
+    .verify-banner-text { font-size: 14px; color: #5a4a1a; line-height: 1.6; }
+    .verify-banner-text strong { color: #1B2A4A; }
+
+    .channels-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+
+    .channel-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(27,42,74,0.08);
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .channel-card.not-found { border-left: 4px solid #E76F51; opacity: 0.85; }
+    .channel-card.found-ok  { border-left: 4px solid #2A9D8F; }
+
+    .channel-status-dot {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .channel-status-dot.ok   { background: #e8f7f5; }
+    .channel-status-dot.warn { background: #fdecea; }
+
+    .channel-info { min-width: 0; }
+    .channel-company-name {
+      font-size: 16px; font-weight: 700; color: #1B2A4A; margin-bottom: 4px;
+    }
+    .channel-company-name .you-badge {
+      background: #2D7DD2; color: #fff; font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 20px; margin-left: 6px; vertical-align: middle;
+    }
+    .channel-found-name {
+      font-size: 13px; color: #4A4A5A; margin-bottom: 6px;
+    }
+
+    .channel-url-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .channel-link {
+      font-size: 13px; color: #2D7DD2; text-decoration: none; word-break: break-all;
+      padding: 4px 8px; border-radius: 6px; background: #EBF4FD;
+      transition: background 0.15s;
+    }
+    .channel-link:hover { background: #D6E8F7; }
+
+    .edit-btn {
+      background: none; border: 1.5px solid #2D7DD2; color: #2D7DD2;
+      border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+      font-weight: 600; white-space: nowrap; transition: all 0.15s;
+    }
+    .edit-btn:hover { background: #2D7DD2; color: #fff; }
+
+    .edit-url-row {
+      display: none; margin-top: 8px; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .edit-url-row.visible { display: flex; }
+    .edit-url-row input {
+      flex: 1; min-width: 200px; border: 1.5px solid #2D7DD2; border-radius: 6px;
+      padding: 6px 10px; font-size: 13px; color: #1B2A4A; outline: none;
+    }
+    .save-edit-btn {
+      background: #2D7DD2; color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .cancel-edit-btn {
+      background: none; border: 1.5px solid #aaa; color: #666; border-radius: 6px;
+      padding: 6px 10px; font-size: 13px; cursor: pointer;
+    }
+
+    .not-found-msg { font-size: 13px; color: #E76F51; font-weight: 500; }
+    .not-found-hint { font-size: 12px; color: #888; margin-top: 2px; }
+
+    .channel-card-actions { flex-shrink: 0; }
+
+    .open-yt-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #ff0000; color: #fff; text-decoration: none;
+      border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+      transition: background 0.15s; white-space: nowrap;
+    }
+    .open-yt-btn:hover { background: #cc0000; }
+    .open-yt-btn.disabled {
+      background: #ccc; cursor: not-allowed; pointer-events: none;
+    }
+
+    /* Hidden inputs holding current channel URLs */
+    .url-input-hidden { display: none; }
+
+    /* Confirm button bar */
+    .confirm-bar {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(27,42,74,0.1);
+      padding: 24px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .confirm-bar-text h2 { font-size: 18px; color: #1B2A4A; margin: 0 0 4px; }
+    .confirm-bar-text p  { font-size: 13px; color: #666; margin: 0; }
+
+    .confirm-btn {
+      background: #2A9D8F; color: #fff; border: none; border-radius: 10px;
+      padding: 14px 36px; font-size: 16px; font-weight: 700; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap;
+    }
+    .confirm-btn:hover { background: #22867a; }
+
+    .back-link {
+      font-size: 13px; color: #666; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .back-link:hover { color: #1B2A4A; }
+  </style>
+</head>
+<body class="verify-page">
+
+  <div class="verify-header">
+    <div class="verify-header-icon">🔍</div>
+    <div class="verify-header-text">
+      <h1>Verify YouTube Channels</h1>
+      <p>Review the channels found for each company. Edit any incorrect link before analysis begins.</p>
+    </div>
+  </div>
+
+  <div class="verify-body">
+
+    <div class="verify-banner">
+      <div class="verify-banner-icon">⚠️</div>
+      <div class="verify-banner-text">
+        <strong>Check each channel carefully.</strong>
+        Click the red YouTube button to open the channel in a new tab and verify it's the correct official channel.
+        If a channel is wrong, click <strong>Edit</strong> and paste the correct YouTube URL before confirming.
+        The full analysis will only start after you confirm.
+      </div>
+    </div>
+
+    <form method="POST" action="/confirm-channels" id="confirmForm">
+      <div class="channels-list">
+        {% for d in all_data %}
+        {% set ck = d.company_name | replace(" ", "_") | lower %}
+        {% set ch_url = "https://www.youtube.com/channel/" + d.channel_id if d.channel_found and d.channel_id else "" %}
+
+        <div class="channel-card {% if d.channel_found %}found-ok{% else %}not-found{% endif %}">
+
+          <div class="channel-status-dot {% if d.channel_found %}ok{% else %}warn{% endif %}">
+            {% if d.channel_found %}✅{% else %}⚠️{% endif %}
+          </div>
+
+          <div class="channel-info">
+            <div class="channel-company-name">
+              {{ d.company_name }}
+              {% if d.company_name == your_company %}
+              <span class="you-badge">YOU</span>
+              {% endif %}
+            </div>
+
+            {% if d.channel_found %}
+              <div class="channel-found-name">
+                Channel: <strong>{{ d.channel_title }}</strong>
+                {% if d.channel_verified %}
+                  <span style="color:#2A9D8F; font-size:12px; margin-left:6px;">✓ AI-verified</span>
+                {% else %}
+                  <span style="color:#F4A261; font-size:12px; margin-left:6px;">⚠ Unverified — please check</span>
+                {% endif %}
+              </div>
+
+              <div class="channel-url-row" id="url-display-{{ ck }}">
+                <a href="{{ ch_url }}" target="_blank" class="channel-link" id="url-link-{{ ck }}">
+                  {{ ch_url }}
+                </a>
+                <button type="button" class="edit-btn" onclick="startEdit('{{ ck }}', '{{ ch_url }}')">
+                  ✏️ Edit
+                </button>
+              </div>
+
+              <div class="edit-url-row" id="url-edit-{{ ck }}">
+                <input type="text" id="url-edit-input-{{ ck }}"
+                       placeholder="Paste correct YouTube channel URL here"
+                       value="{{ ch_url }}"/>
+                <button type="button" class="save-edit-btn" onclick="saveEdit('{{ ck }}')">Save</button>
+                <button type="button" class="cancel-edit-btn" onclick="cancelEdit('{{ ck }}', '{{ ch_url }}')">Cancel</button>
+              </div>
+
+              <!-- Hidden input sent with form -->
+              <input type="hidden" name="channel_url_{{ ck }}" id="url-hidden-{{ ck }}" value="{{ ch_url }}"/>
+
+            {% else %}
+              <div class="not-found-msg">No verified channel found automatically</div>
+              <div class="not-found-hint">Paste the correct YouTube URL below to include this company in the analysis.</div>
+              <div class="edit-url-row visible" id="url-edit-{{ ck }}">
+                <input type="text" id="url-edit-input-{{ ck }}"
+                       placeholder="Paste YouTube channel URL (e.g. https://www.youtube.com/@CompanyName)"
+                       value=""/>
+                <button type="button" class="save-edit-btn" onclick="saveEdit('{{ ck }}')">Add</button>
+              </div>
+              <input type="hidden" name="channel_url_{{ ck }}" id="url-hidden-{{ ck }}" value=""/>
+            {% endif %}
+          </div>
+
+          <div class="channel-card-actions">
+            {% if d.channel_found %}
+            <a href="{{ ch_url }}" target="_blank" class="open-yt-btn" id="yt-btn-{{ ck }}">
+              ▶ Open on YouTube
+            </a>
+            {% else %}
+            <span class="open-yt-btn disabled">Not found</span>
+            {% endif %}
+          </div>
+
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="confirm-bar">
+        <div>
+          <a href="/" class="back-link">← Start over</a>
+        </div>
+        <div class="confirm-bar-text">
+          <h2>Everything looks correct?</h2>
+          <p>The full analysis (video watching, AI insights, PPTX) will start once you confirm.</p>
+        </div>
+        <button type="submit" class="confirm-btn">
+          ✅ Confirm &amp; Run Full Analysis →
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    function startEdit(ck, currentUrl) {
+      document.getElementById('url-display-' + ck).style.display = 'none';
+      const editRow = document.getElementById('url-edit-' + ck);
+      editRow.classList.add('visible');
+      const input = document.getElementById('url-edit-input-' + ck);
+      input.value = currentUrl;
+      input.focus();
+    }
+
+    function saveEdit(ck) {
+      const input    = document.getElementById('url-edit-input-' + ck);
+      const newUrl   = input.value.trim();
+      const hidden   = document.getElementById('url-hidden-' + ck);
+      const linkEl   = document.getElementById('url-link-' + ck);
+      const ytBtn    = document.getElementById('yt-btn-' + ck);
+      const editRow  = document.getElementById('url-edit-' + ck);
+      const dispRow  = document.getElementById('url-display-' + ck);
+
+      if (newUrl) {
+        hidden.value     = newUrl;
+        if (linkEl) {
+          linkEl.href      = newUrl;
+          linkEl.textContent = newUrl;
+        }
+        if (ytBtn) {
+          ytBtn.href       = newUrl;
+          ytBtn.classList.remove('disabled');
+        }
+      }
+
+      editRow.classList.remove('visible');
+      if (dispRow) dispRow.style.display = 'flex';
+    }
+
+    function cancelEdit(ck, originalUrl) {
+      const editRow = document.getElementById('url-edit-' + ck);
+      const dispRow = document.getElementById('url-display-' + ck);
+      editRow.classList.remove('visible');
+      if (dispRow) dispRow.style.display = 'flex';
+      document.getElementById('url-edit-input-' + ck).value = originalUrl;
+    }
+  </script>
+</body>
+</html>

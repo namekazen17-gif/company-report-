@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Confirm Channels · Video Competitor Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body class="confirm-page">
+
+  <!-- ── DISCOVERY SPINNER (shown while phase-1 is running) ── -->
+  <div class="confirm-wrapper" id="discoveringState">
+    <div class="confirm-card">
+      <div class="loading-header" style="margin-bottom:20px">
+        <div class="pulse-ring"></div>
+        <div class="loading-icon">🔍</div>
+      </div>
+      <h1 class="confirm-title">Finding YouTube Channels</h1>
+      <p class="confirm-sub">We're searching and verifying the official YouTube channels for each company. This takes about 20–40 seconds.</p>
+
+      <div class="confirm-companies-row">
+        <span class="company-pill your-pill">{{ your_company }}</span>
+        {% for c in competitors %}
+        <span class="company-pill">{{ c }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="discover-log-box">
+        <div class="discover-log" id="discoverLog">
+          <div class="log-entry init">⚡ Starting channel discovery...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONFIRMATION TABLE (hidden until discovery done) ── -->
+  <div class="confirm-wrapper" id="confirmState" style="display:none">
+    <div class="confirm-card wide">
+
+      <div class="confirm-header">
+        <div class="confirm-badge">Step 2 of 5 · Channel Verification</div>
+        <h1 class="confirm-title">Verify YouTube Channels</h1>
+        <p class="confirm-sub">We found the channels below. Click any link to verify it's correct. You can edit the URL or leave it blank and provide individual video links instead.</p>
+      </div>
+
+      <form action="/confirm" method="POST" id="confirmForm">
+
+        <div class="channel-table" id="channelTable">
+          <!-- rows injected by JS -->
+        </div>
+
+        <div class="confirm-actions">
+          <div class="confirm-note">
+            💡 If a channel URL is wrong, paste the correct YouTube channel or video URL. If no channel exists, leave it blank and paste up to 5 video URLs.
+          </div>
+          <button type="submit" class="submit-btn" id="confirmBtn">
+            <span class="btn-icon">✅</span>
+            Confirm &amp; Continue Analysis
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ── ERROR STATE ── -->
+  <div class="confirm-wrapper" id="errorState" style="display:none">
+    <div class="confirm-card">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;margin-bottom:16px">❌</div>
+        <h1 class="confirm-title">Channel Discovery Failed</h1>
+        <p class="confirm-sub" id="errorMsg">An unexpected error occurred.</p>
+        <a href="/" class="submit-btn" style="display:inline-flex;margin-top:24px;text-decoration:none;width:auto;padding:14px 32px">
+          <span class="btn-icon">↩</span> Try Again
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Polling ──────────────────────────────────────────────────────────────
+    const discoverLog  = document.getElementById('discoverLog');
+    let   loggedCount  = 0;
+    let   pollInterval = null;
+
+    function addLog(msg) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.textContent = msg;
+      discoverLog.appendChild(div);
+      discoverLog.scrollTop = discoverLog.scrollHeight;
+    }
+
+    function showConfirmState(channels) {
+      document.getElementById('discoveringState').style.display = 'none';
+      document.getElementById('confirmState').style.display     = 'flex';
+      buildTable(channels);
+    }
+
+    function showErrorState(msg) {
+      document.getElementById('discoveringState').style.display = 'none';
+      document.getElementById('errorState').style.display       = 'flex';
+      document.getElementById('errorMsg').textContent           = msg || 'An unexpected error occurred.';
+    }
+
+    function poll() {
+      fetch('/channel_status')
+        .then(r => r.json())
+        .then(data => {
+          // Append new log messages
+          const msgs = data.messages || [];
+          while (loggedCount < msgs.length) {
+            addLog(msgs[loggedCount]);
+            loggedCount++;
+          }
+
+          if (data.phase === 'awaiting_confirmation') {
+            clearInterval(pollInterval);
+            showConfirmState(data.channels || []);
+          } else if (data.phase === 'error') {
+            clearInterval(pollInterval);
+            showErrorState(data.error);
+          }
+        })
+        .catch(() => {/* keep polling */});
+    }
+
+    pollInterval = setInterval(poll, 1500);
+    poll(); // immediate first call
+
+    // ── Table builder ────────────────────────────────────────────────────────
+    function buildTable(channels) {
+      const table = document.getElementById('channelTable');
+      table.innerHTML = '';
+
+      channels.forEach((ch, i) => {
+        const found    = ch.channel_found;
+        const verified = ch.channel_verified;
+        const url      = ch.channel_url || '';
+        const title    = ch.channel_title || '';
+
+        const row = document.createElement('div');
+        row.className = 'ch-row' + (found ? '' : ' ch-row-notfound');
+
+        // Status icon
+        let statusIcon, statusClass;
+        if (found && verified)  { statusIcon = '✅'; statusClass = 'ch-status-ok'; }
+        else if (found)          { statusIcon = '⚠️'; statusClass = 'ch-status-warn'; }
+        else                     { statusIcon = '❌'; statusClass = 'ch-status-err'; }
+
+        row.innerHTML = `
+          <div class="ch-company">
+            <span class="ch-status-icon ${statusClass}">${statusIcon}</span>
+            <div>
+              <div class="ch-company-name">${escHtml(ch.company_name)}</div>
+              <div class="ch-company-sub">${found ? escHtml(title) : 'No channel found'}</div>
+            </div>
+          </div>
+
+          <div class="ch-url-cell">
+            <div class="ch-url-row">
+              <input
+                type="url"
+                name="channel_url_${i}"
+                id="channel_url_${i}"
+                class="form-input ch-url-input ${found ? 'ch-input-found' : 'ch-input-notfound'}"
+                value="${escHtml(url)}"
+                placeholder="${found ? 'Channel URL (edit if wrong)' : 'Paste correct YouTube channel or video URL…'}"
+                autocomplete="off"
+              />
+              ${url ? `<a href="${escHtml(url)}" target="_blank" class="ch-open-btn" title="Open channel in new tab">↗ Open</a>` : ''}
+            </div>
+            ${!found ? `
+            <div class="ch-manual-section" id="manual_${i}">
+              <div class="ch-manual-label">Or paste up to 5 video URLs for this company:</div>
+              ${[0,1,2,3,4].map(j => `
+              <input
+                type="url"
+                name="video_url_${i}_${j}"
+                id="video_url_${i}_${j}"
+                class="form-input ch-video-input"
+                placeholder="https://www.youtube.com/watch?v=..."
+                autocomplete="off"
+              />`).join('')}
+            </div>` : ''}
+          </div>
+        `;
+
+        table.appendChild(row);
+
+        // If channel was found, show manual section only when URL is cleared
+        if (found) {
+          const urlInput = row.querySelector(`#channel_url_${i}`);
+          urlInput.addEventListener('input', function() {
+            const openBtn = row.querySelector('.ch-open-btn');
+            if (openBtn) {
+              openBtn.href = this.value || '#';
+            }
+          });
+        }
+      });
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Disable confirm button on submit to prevent double-clicks
+    document.getElementById('confirmForm').addEventListener('submit', function() {
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="btn-icon">⏳</span> Applying changes & starting analysis...';
+    });
+  </script>
+</body>
+</html>

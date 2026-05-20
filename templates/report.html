@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Report · {{ your_company }} vs Competitors</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body class="report-page">
+
+  <!-- Top nav -->
+  <nav class="report-nav">
+    <div class="nav-brand">🎬 Video Intelligence</div>
+    <div class="nav-actions">
+      <a href="/" class="nav-link">← New Report</a>
+      <a href="/download" class="download-btn">⬇ Download PowerPoint</a>
+    </div>
+  </nav>
+
+  <!-- Report header -->
+  <div class="report-hero">
+    <div class="report-badge">AI-Powered Competitive Analysis</div>
+    <h1>{{ your_company }} <span class="vs-text">vs</span>
+      {% for c in competitors %}{{ c }}{% if not loop.last %} · {% endif %}{% endfor %}
+    </h1>
+    <p class="report-date">Generated on {{ now }}</p>
+  </div>
+
+  <div class="report-body">
+
+    <!-- Executive Summary -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">📋</span>
+        <h2>Executive Summary</h2>
+      </div>
+      <div class="exec-grid">
+        <div class="exec-leader-card">
+          <div class="leader-label">Market Leader</div>
+          <div class="leader-name">{{ analysis.leader }}</div>
+          <div class="leader-sub">YouTube Video Marketing</div>
+        </div>
+        <div class="exec-summary-card">
+          <p>{{ insights.executive_summary }}</p>
+          <div class="divider"></div>
+          <p class="leader-detail">{{ insights.leader_analysis }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rankings -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">🏆</span>
+        <h2>Overall Rankings</h2>
+      </div>
+      <div class="rankings-grid">
+        {% for r in analysis.ranked %}
+        <div class="rank-card {% if loop.index == 1 %}rank-first{% endif %}">
+          <div class="rank-position">#{{ loop.index }}</div>
+          <div class="rank-company">{{ r.company }}</div>
+          <div class="rank-score">{{ r.total_score }}<span>/10</span></div>
+          <div class="rank-breakdown">
+            <div class="rank-dim"><span>Subscribers</span><strong>{{ r.subscribers_score }}</strong></div>
+            <div class="rank-dim"><span>Views</span><strong>{{ r.views_score }}</strong></div>
+            <div class="rank-dim"><span>Engagement</span><strong>{{ r.engagement_score }}</strong></div>
+            <div class="rank-dim"><span>Frequency</span><strong>{{ r.frequency_score }}</strong></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Channel Overview -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2>Channel Overview</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Subscribers</th>
+              <th>Total Videos</th>
+              <th>Total Views</th>
+              <th>Avg Views/Video</th>
+              <th>Upload Frequency</th>
+              <th>Engagement Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in all_data %}
+            {% if d.channel_found %}
+            <tr {% if d.company_name == your_company %}class="your-row"{% endif %}>
+              <td><strong>{{ d.company_name }}</strong>
+                {% if d.company_name == your_company %}<span class="you-badge">YOU</span>{% endif %}
+              </td>
+              <td>{{ d.subscribers | fmt_num }}</td>
+              <td>{{ d.total_videos | fmt_num }}</td>
+              <td>{{ d.total_views | fmt_num }}</td>
+              <td>{{ d.avg_views_per_video | fmt_num }}</td>
+              <td>{% if d.upload_frequency_days %}Every {{ d.upload_frequency_days }} days{% else %}N/A{% endif %}</td>
+              <td>{{ d.engagement_rate }}%</td>
+            </tr>
+            {% else %}
+            <tr class="not-found-row">
+              <td>{{ d.company_name }}</td>
+              <td colspan="6">⚠️ No verified YouTube channel found</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Video Content Analysis -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">🎬</span>
+        <h2>Video Content Analysis</h2>
+        <span class="section-badge">AI-Watched</span>
+      </div>
+      <div class="video-analysis-grid">
+        {% for d in all_data %}
+        {% if d.channel_found and d.transcript_summaries %}
+        <div class="company-videos-card">
+          <div class="company-videos-header">{{ d.company_name }}</div>
+          {% for s in d.transcript_summaries %}
+          <div class="video-summary">
+            <div class="video-title">
+              <a href="{{ s.url }}" target="_blank">{{ s.title[:70] }}{% if s.title|length > 70 %}…{% endif %}</a>
+              <span class="tier-badge tier-{{ s.source_tier }}">{{ s.source_tier.replace('_', ' ') }}</span>
+            </div>
+            <p class="video-summary-text">{{ s.summary }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Top Performing Videos -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">📈</span>
+        <h2>Top Performing Videos</h2>
+      </div>
+      <div class="top-videos-grid">
+        {% for d in all_data %}
+        {% if d.channel_found and d.top_videos %}
+        <div class="top-videos-col">
+          <div class="tv-company">{{ d.company_name }}</div>
+          {% for v in d.top_videos[:4] %}
+          <div class="top-video-card">
+            <a href="{{ v.url }}" target="_blank" class="tv-title">{{ v.title[:65] }}{% if v.title|length > 65 %}…{% endif %}</a>
+            <div class="tv-metrics">
+              <span>👁 {{ v.views | fmt_num }}</span>
+              <span>❤ {{ v.likes | fmt_num }}</span>
+              <span>💬 {{ v.comments | fmt_num }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Posting Frequency -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">📅</span>
+        <h2>Posting Frequency & Consistency</h2>
+      </div>
+      <div class="insight-block">{{ insights.posting_insight }}</div>
+      <div class="freq-bars">
+        {% set max_freq = namespace(val=1) %}
+        {% for d in all_data %}{% if d.channel_found and d.upload_frequency_days %}
+          {% if d.upload_frequency_days > max_freq.val %}{% set max_freq.val = d.upload_frequency_days %}{% endif %}
+        {% endif %}{% endfor %}
+        {% for d in all_data %}
+        {% if d.channel_found %}
+        <div class="freq-row">
+          <div class="freq-label">{{ d.company_name }}{% if d.company_name == your_company %} <span class="you-badge">YOU</span>{% endif %}</div>
+          <div class="freq-bar-wrap">
+            {% if d.upload_frequency_days %}
+            {% set pct = ((max_freq.val - d.upload_frequency_days) / max_freq.val * 75 + 15) | int %}
+            <div class="freq-bar" style="width: {{ pct }}%"></div>
+            <span class="freq-value">Every {{ d.upload_frequency_days }} days</span>
+            {% else %}
+            <div class="freq-bar" style="width: 10%"></div>
+            <span class="freq-value">Unknown</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Content Topics -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">🏷️</span>
+        <h2>Content Topics & Themes</h2>
+        <span class="section-badge">AI-Analysed</span>
+      </div>
+      <div class="topics-grid">
+        {% for d in all_data %}
+        {% if d.channel_found %}
+        <div class="topics-card">
+          <div class="topics-company">{{ d.company_name }}</div>
+          <div class="topics-pills">
+            {% for topic in d.topics %}
+            <span class="topic-pill">{{ topic }}</span>
+            {% endfor %}
+          </div>
+          {% if analysis.content_themes and d.company_name in analysis.content_themes %}
+          <div class="themes-insight">{{ analysis.content_themes[d.company_name] }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Gap Analysis -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">🔍</span>
+        <h2>Content Gap Analysis</h2>
+      </div>
+      <div class="insight-block">{{ insights.gap_analysis }}</div>
+      <div class="gaps-container">
+        <div class="gaps-label">Topics your competitors cover that {{ your_company }} is missing:</div>
+        <div class="gaps-pills">
+          {% for gap in analysis.gaps %}
+          <span class="gap-pill">{{ gap }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Recommendations -->
+    <section class="report-section">
+      <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2>Video Marketing Recommendations</h2>
+      </div>
+      <div class="recs-grid">
+        {% set recs = insights.recommendations.split('\n') %}
+        {% set icons = ['🎯', '📈', '🎬', '🤝'] %}
+        {% set labels = ['Priority Action', 'Growth Lever', 'Content Strategy', 'Engagement Tactic'] %}
+        {% set ns = namespace(val=0) %}
+        {% for rec in recs %}
+          {% if rec.strip() and rec.strip()[0] in '1234' %}
+            <div class="rec-card">
+              <div class="rec-icon">{{ icons[ns.val] if ns.val < 4 else '▶' }}</div>
+              <div class="rec-label">{{ labels[ns.val] if ns.val < 4 else 'Action' }}</div>
+              <div class="rec-text">{{ rec.strip().lstrip('0123456789. ') }}</div>
+            </div>
+            {% set ns.val = ns.val + 1 %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Download CTA -->
+    <section class="report-section download-section">
+      <div class="download-cta">
+        <h2>📊 Ready to Present?</h2>
+        <p>Download the full 11-slide PowerPoint — professionally designed, client-ready.</p>
+        <a href="/download" class="download-btn-large">⬇ Download PowerPoint Report</a>
+        <a href="/" class="new-report-link">← Run another analysis</a>
+      </div>
+    </section>
+
+  </div><!-- /report-body -->
+
+  <script>
+    // Inject current date
+    document.querySelectorAll('.report-date').forEach(el => {
+      if (!el.textContent.trim()) {
+        el.textContent = 'Generated on ' + new Date().toLocaleDateString('en-GB', {
+          day: 'numeric', month: 'long', year: 'numeric'
+        });
+      }
+    });
+  </script>
+</body>
+</html>

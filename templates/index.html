@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video Competitor Intelligence Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body class="index-page">
+
+  <div class="hero">
+    <div class="hero-badge">🎬 AI-Powered · YouTube Data API · Multi-Model Analysis</div>
+    <h1>Video Competitor<br><span class="accent">Intelligence Tool</span></h1>
+    <p class="hero-sub">Enter your company and up to 4 competitors. We'll watch their videos, analyse their strategy, and build you a client-ready PowerPoint report.</p>
+  </div>
+
+  <div class="form-card">
+    {% if error %}
+    <div class="error-banner">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form action="/generate" method="POST" id="mainForm">
+      <div class="form-section">
+        <label class="form-label">Your Company</label>
+        <input type="text" name="your_company" class="form-input primary-input"
+               placeholder="e.g. HubSpot" required autocomplete="off"/>
+        <span class="form-hint">Enter the exact company name as known on YouTube</span>
+      </div>
+
+      <div class="divider-label">Competitors to Analyse</div>
+
+      <div class="competitor-grid">
+        <div class="form-section">
+          <label class="form-label">Competitor 1</label>
+          <input type="text" name="competitor1" class="form-input"
+                 placeholder="e.g. Salesforce" autocomplete="off"/>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Competitor 2</label>
+          <input type="text" name="competitor2" class="form-input"
+                 placeholder="e.g. Zoho" autocomplete="off"/>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Competitor 3</label>
+          <input type="text" name="competitor3" class="form-input"
+                 placeholder="e.g. Pipedrive" autocomplete="off"/>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Competitor 4 <span class="optional">(optional)</span></label>
+          <input type="text" name="competitor4" class="form-input"
+                 placeholder="e.g. Monday.com" autocomplete="off"/>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <span class="btn-icon">🚀</span>
+        Generate Intelligence Report
+      </button>
+    </form>
+
+    <div class="what-happens">
+      <div class="wh-title">What happens next:</div>
+      <div class="wh-steps">
+        <div class="wh-step"><span>1</span> We find each company's YouTube channel</div>
+        <div class="wh-step"><span>2</span> You verify &amp; correct channels if needed</div>
+        <div class="wh-step"><span>3</span> We watch &amp; transcribe their top videos</div>
+        <div class="wh-step"><span>4</span> AI reasons through the competitive data</div>
+        <div class="wh-step"><span>5</span> You get a full report + downloadable PowerPoint</div>
+      </div>
+      <div class="wh-time">⏱ Takes 2–4 minutes · All real data · No mock outputs</div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('mainForm').addEventListener('submit', function() {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="btn-icon">⏳</span> Starting analysis...';
+    });
+  </script>
+</body>
+</html>

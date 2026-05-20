@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Quota Exhausted · Video Competitor Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+  <style>
+    /* ── Quota Exhausted page ── */
+    .quota-page {
+      background: #F4F6F9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .quota-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(27,42,74,0.12);
+      max-width: 560px;
+      width: 100%;
+      padding: 48px 44px;
+      text-align: center;
+    }
+
+    .quota-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .quota-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1B2A4A;
+      margin: 0 0 12px;
+      line-height: 1.25;
+    }
+
+    .quota-subtitle {
+      font-size: 15px;
+      color: #5a6a7a;
+      margin: 0 0 32px;
+      line-height: 1.6;
+    }
+
+    /* Info cards */
+    .quota-info-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 36px;
+      text-align: left;
+    }
+
+    .quota-info-card {
+      background: #F4F6F9;
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .quota-info-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .quota-info-text {
+      font-size: 13.5px;
+      color: #3a4a5a;
+      line-height: 1.55;
+    }
+
+    .quota-info-text strong {
+      color: #1B2A4A;
+      display: block;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    /* Reset time highlight */
+    .reset-badge {
+      display: inline-block;
+      background: #e8f7f5;
+      color: #1a7a6e;
+      border: 1.5px solid #2A9D8F;
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 32px;
+    }
+
+    /* Action buttons */
+    .quota-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: #2D7DD2;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 28px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #2568b5; }
+
+    .btn-secondary {
+      background: #fff;
+      color: #1B2A4A;
+      border: 1.5px solid #d0d8e4;
+      border-radius: 10px;
+      padding: 13px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { border-color: #2D7DD2; color: #2D7DD2; }
+
+    .quota-divider {
+      border: none;
+      border-top: 1px solid #e8edf2;
+      margin: 32px 0;
+    }
+
+    .quota-footer {
+      font-size: 12px;
+      color: #9aabb8;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body class="quota-page">
+
+  <div class="quota-card">
+
+    <span class="quota-icon">⛔</span>
+
+    <h1 class="quota-title">YouTube API Quota Exhausted</h1>
+    <p class="quota-subtitle">
+      All configured YouTube API keys have reached their daily request limit.
+      No more YouTube data can be fetched until the quota resets.
+    </p>
+
+    <div class="reset-badge">
+      🕛 Quota resets at midnight Pacific Time (PT) every day
+    </div>
+
+    <div class="quota-info-grid">
+
+      <div class="quota-info-card">
+        <div class="quota-info-icon">🔑</div>
+        <div class="quota-info-text">
+          <strong>What happened</strong>
+          The tool uses up to 4 YouTube Data API keys in sequence. Each key has a
+          daily quota of 10,000 units set by Google. All keys in your
+          <code>.env</code> file have been spent for today.
+        </div>
+      </div>
+
+      <div class="quota-info-card">
+        <div class="quota-info-icon">🛠️</div>
+        <div class="quota-info-text">
+          <strong>Add more keys to extend capacity</strong>
+          Create additional projects in
+          <a href="https://console.cloud.google.com/apis/api/youtube.googleapis.com"
+             target="_blank" style="color:#2D7DD2;">Google Cloud Console</a>,
+          enable the YouTube Data API v3, and add the keys to your
+          <code>.env</code> as <code>YOUTUBE_API_KEY_2</code>,
+          <code>YOUTUBE_API_KEY_3</code>, <code>YOUTUBE_API_KEY_4</code>.
+        </div>
+      </div>
+
+      <div class="quota-info-card">
+        <div class="quota-info-icon">⏰</div>
+        <div class="quota-info-text">
+          <strong>Try again tomorrow</strong>
+          Quota automatically resets at midnight Pacific Time. You can run the
+          full analysis again once the counter resets — no changes needed.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="quota-actions">
+      <a href="/" class="btn-primary">
+        ← Start Over
+      </a>
+      <a href="https://console.cloud.google.com/apis/api/youtube.googleapis.com"
+         target="_blank" class="btn-secondary">
+        🔑 Google Cloud Console ↗
+      </a>
+    </div>
+
+    <hr class="quota-divider"/>
+
+    <p class="quota-footer">
+      YouTube Data API v3 quota: 10,000 units per key per day.<br>
+      Each channel search costs ~100 units · Each video stats call costs ~1 unit.
+    </p>
+
+  </div>
+
+</body>
+</html>

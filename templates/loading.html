@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Analysing... · Video Competitor Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body class="loading-page">
+
+  <div class="loading-container">
+    <div class="loading-header">
+      <div class="pulse-ring"></div>
+      <div class="loading-icon">{% if phase == 'channels' %}🔍{% else %}🧠{% endif %}</div>
+    </div>
+
+    {% if phase == 'channels' %}
+    <h1 class="loading-title">Finding YouTube Channels for <span class="accent" id="currentCompany">{{ your_company }}</span></h1>
+    <p class="loading-sub">Searching and verifying official channels for each company.</p>
+    {% else %}
+    <h1 class="loading-title">Analysing <span class="accent" id="currentCompany">{{ your_company }}</span></h1>
+    <p class="loading-sub">Watching competitor videos, running AI analysis, building your report.</p>
+    {% endif %}
+
+    <div class="companies-row">
+      <span class="company-pill your-pill">{{ your_company }}</span>
+      {% for c in competitors %}
+      <span class="company-pill">{{ c }}</span>
+      {% endfor %}
+    </div>
+
+    <!-- Progress log -->
+    <div class="progress-box" id="progressBox">
+      <div class="progress-log" id="progressLog">
+        <div class="log-entry init">⚡ Initialising...</div>
+      </div>
+    </div>
+
+    <!-- Stage indicators -->
+    <div class="stages">
+      {% if phase == 'channels' %}
+      <div class="stage" id="stage1">
+        <div class="stage-dot active"></div>
+        <div class="stage-label">Finding Channels</div>
+      </div>
+      <div class="stage-line"></div>
+      <div class="stage" id="stage2">
+        <div class="stage-dot"></div>
+        <div class="stage-label">Verifying Channels</div>
+      </div>
+      <div class="stage-line"></div>
+      <div class="stage" id="stage3">
+        <div class="stage-dot"></div>
+        <div class="stage-label">Your Review</div>
+      </div>
+      {% else %}
+      <div class="stage" id="stage1">
+        <div class="stage-dot active"></div>
+        <div class="stage-label">Watching Videos</div>
+      </div>
+      <div class="stage-line"></div>
+      <div class="stage" id="stage2">
+        <div class="stage-dot"></div>
+        <div class="stage-label">AI Analysis</div>
+      </div>
+      <div class="stage-line"></div>
+      <div class="stage" id="stage3">
+        <div class="stage-dot"></div>
+        <div class="stage-label">Building Report</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="loading-note">
+      {% if phase == 'channels' %}
+      Searching YouTube for each company's official channel. This takes about 30–60 seconds.
+      {% else %}
+      This takes 2–4 minutes — we're actually watching and understanding each video.
+      <br>Do not close this tab.
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const PHASE = "{{ phase }}";
+    const JOB_ID = "{{ job_id | default('') }}";
+    const log = document.getElementById('progressLog');
+    const currentCompanyEl = document.getElementById('currentCompany');
+    const stages = [
+      document.querySelector('#stage1 .stage-dot'),
+      document.querySelector('#stage2 .stage-dot'),
+      document.querySelector('#stage3 .stage-dot'),
+    ];
+
+    function setStage(n) {
+      stages.forEach((d, i) => {
+        if (!d) return;
+        d.classList.remove('active', 'done');
+        if (i < n) d.classList.add('done');
+        else if (i === n) d.classList.add('active');
+      });
+    }
+
+    function addLogEntry(msg) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.textContent = msg;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+
+      if (PHASE === 'channels') {
+        if (msg.includes('Searching YouTube channel for:')) {
+          const name = msg.split('Searching YouTube channel for:')[1].trim();
+          currentCompanyEl.textContent = name;
+          setStage(0);
+        }
+        if (msg.includes('✅') && msg.includes('→')) {
+          setStage(1);
+        }
+      } else {
+        if (msg.includes('Processing videos for:')) {
+          const name = msg.split('Processing videos for:')[1].trim();
+          currentCompanyEl.textContent = name;
+          setStage(0);
+        }
+        if (msg.includes('Running competitive scoring') || msg.includes('Running strategic reasoning') ||
+            msg.includes('Writing client-ready copy') || msg.includes('Running quality verification')) {
+          setStage(1);
+        }
+        if (msg.includes('Building PowerPoint report') || msg.includes('Report complete')) {
+          setStage(2);
+        }
+      }
+    }
+
+    // Choose correct SSE endpoint
+    const sseUrl = PHASE === 'channels' ? '/progress-channels' : '/progress';
+    const evtSource = new EventSource(sseUrl);
+
+    evtSource.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+
+      // ── Quota exhausted: all YouTube API keys are spent ──────────────────
+      // This check must come BEFORE the generic done/error handling below
+      if (data.quota_exhausted) {
+        evtSource.close();
+        addLogEntry('⛔ All YouTube API keys have reached their daily quota limit.');
+        addLogEntry('Redirecting to quota information page...');
+        setTimeout(() => { window.location.href = '/quota-exhausted'; }, 1500);
+        return;
+      }
+
+      if (data.msg && data.msg !== 'done' && data.msg !== '__CHANNELS_READY__') {
+        addLogEntry(data.msg);
+      }
+
+      if (data.done) {
+        evtSource.close();
+        if (data.error) {
+          addLogEntry('❌ An error occurred. Please try again.');
+          setTimeout(() => { window.location.href = '/'; }, 3000);
+        } else if (PHASE === 'channels') {
+          setStage(2);
+          addLogEntry('✅ Channels found! Redirecting to verification...');
+          setTimeout(() => { window.location.href = '/verify-channels'; }, 1000);
+        } else {
+          setStage(3);
+          addLogEntry('✅ All done! Loading your report...');
+          setTimeout(() => { window.location.href = '/report?job_id=' + encodeURIComponent(JOB_ID); }, 1200);
+        }
+      }
+    };
+
+    evtSource.onerror = function() {
+      evtSource.close();
+      addLogEntry('Connection interrupted. Checking status...');
+      if (PHASE === 'channels') {
+        setTimeout(() => { window.location.href = '/verify-channels'; }, 2000);
+      } else {
+        setTimeout(() => { window.location.href = '/report?job_id=' + encodeURIComponent(JOB_ID); }, 2000);
+      }
+    };
+  </script>
+</body>
+</html>
