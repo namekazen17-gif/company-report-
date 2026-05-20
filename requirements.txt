@@ -1,0 +1,10 @@
+flask==3.0.3
+python-pptx==0.6.23
+google-api-python-client==2.131.0
+groq
+python-dotenv==1.0.1
+requests==2.32.3
+gunicorn==22.0.0
+youtube-transcript-api==0.6.2
+google-genai
+lxml==5.2.2
